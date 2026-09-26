@@ -66,6 +66,7 @@ export function createCraft(kind: BirdKind = 'osprey'): Craft {
     pitch: 0,
     roll: 0,
     yaw: 0,
+    yawRate: 0,
     onGround: true,
     rotorRpm: 0.05,
     nacelleDeg: 0,
