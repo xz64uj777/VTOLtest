@@ -115,6 +115,7 @@ export function createCraft(kind: BirdKind = 'osprey'): Craft {
     pitch: 0,
     roll: 0,
     yaw: 0,
+    yawRate: 0,
     onGround: true,
     rotorRpm: 0.05,
     // Cold start: airplane / CTOL — nacelles forward, VEC aft (not mid-hover demo)
@@ -220,13 +221,27 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
 
   let pitchCmd = ctrl.cyclicPitch * pitchRate
   let rollCmd = ctrl.cyclicRoll * rollRate
-  let yawCmd = ctrl.yaw * yawRate
-  if (helFrac > 0.4) yawCmd += ctrl.tcl * 0.06 * ctrl.cyclicRoll * helFrac
-  else yawCmd *= clamp(speedHoriz / 40, 0.15, 1)
-  // On the wheels in ANY nacelle angle — not only airplane mode.
-  // Starting rotation used to drop this lock and the bird went loose.
-  const deckAirplane = c.onGround && speedHoriz < 1.5 && ctrl.tcl < 0.1
-  if (deckAirplane && helFrac < 0.75) yawCmd = 0
+
+  // Yaw is mode- and speed-dependent instead of directly rotating the aircraft.
+  // In HEL/very-low-speed flight pedals can pivot the aircraft. In APL/fast CONV,
+  // bank creates the turn and pedals mainly trim sideslip.
+  const wingborne = clamp((speedHoriz - 10) / 32, 0, 1) * clamp(aplFrac * 1.15, 0, 1)
+  const hoverYaw = clamp(helFrac * (1 - speedHoriz / 42), 0, 1)
+  const coordinatedYaw =
+    -Math.tan(clamp(c.roll, -0.72, 0.72)) * GRAVITY / Math.max(speedHoriz, 18) * wingborne
+  const pedalYaw =
+    ctrl.yaw * yawRate * (hoverYaw * 0.78 + (1 - wingborne) * 0.16 + wingborne * 0.07)
+  let yawTarget = coordinatedYaw + pedalYaw
+  if (helFrac > 0.55 && speedHoriz < 28) {
+    yawTarget += ctrl.tcl * 0.035 * ctrl.cyclicRoll * helFrac
+  }
+
+  // On the wheels in airplane-like nacelle angles, only allow modest steering while rolling.
+  const deckAirplane = c.onGround && helFrac < 0.75
+  if (deckAirplane) {
+    const steerAuth = clamp(speedHoriz / 10, 0, 0.45)
+    yawTarget = speedHoriz < 0.8 && ctrl.tcl < 0.15 ? 0 : ctrl.yaw * yawRate * steerAuth
+  }
   if (c.onGround) {
     rollCmd = 0
     // v11: parked / walking speed + no power — stick does not rock the nose.
@@ -244,7 +259,10 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
 
   c.pitch += pitchCmd * dt
   c.roll += rollCmd * dt
-  c.yaw = wrapAngle(c.yaw + yawCmd * dt)
+  const yawResponse = mode === 'HEL' && speedHoriz < 25 ? 3.8 : 2.2
+  c.yawRate += (yawTarget - c.yawRate) * (1 - Math.exp(-yawResponse * dt))
+  c.yawRate *= Math.exp(-(mode === 'HEL' ? 0.35 : 0.7) * dt)
+  c.yaw = wrapAngle(c.yaw + c.yawRate * dt)
 
   // Wider limits in CONV so short-takeoff rotate / dive-for-speed works
   const pitchLim = mode === 'CONV' ? 0.65 : lerp(0.5, 0.58, helFrac)
@@ -465,11 +483,25 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   const noseUpCmd = -ctrl.cyclicPitch
   const pitchCmd = ctrl.cyclicPitch * F35_PITCH_RATE
   let rollCmd = ctrl.cyclicRoll * F35_ROLL_RATE
-  let yawCmd = ctrl.yaw * F35_YAW_RATE * (mode === 'CTOL' ? clamp(speedHoriz / 50, 0.2, 1) : 1)
-  if (c.failAsymmetric) rollCmd += 0.2
-  if (mode === 'VL') {
-    yawCmd += ctrl.tcl * 0.04 * ctrl.cyclicRoll
+
+  // Fighter turns are bank-driven at speed. Rudder has only limited heading authority in
+  // CTOL flight; strong pedal pivoting is reserved for VL/STOVL at very low speed.
+  const forwardFlight = clamp((speedHoriz - 12) / 38, 0, 1) * clamp(1 - vlFrac * 0.78, 0.12, 1)
+  const hoverAuthority =
+    mode === 'VL'
+      ? clamp(1 - speedHoriz / 42, 0.18, 1)
+      : mode === 'STOVL'
+        ? clamp(1 - speedHoriz / 65, 0.08, 0.68)
+        : 0
+  const coordinatedYaw =
+    -Math.tan(clamp(c.roll, -0.78, 0.78)) * GRAVITY / Math.max(speedHoriz, 24) * forwardFlight
+  const rudderYaw =
+    ctrl.yaw * F35_YAW_RATE * (hoverAuthority * 0.62 + (1 - hoverAuthority) * (0.045 + 0.035 * (1 - forwardFlight)))
+  let yawTarget = coordinatedYaw + rudderYaw
+  if (mode === 'VL' && speedHoriz < 30) {
+    yawTarget += ctrl.tcl * 0.025 * ctrl.cyclicRoll
   }
+  if (c.failAsymmetric) rollCmd += 0.2
 
   if (!wowCtol) {
     const parked = c.onGround && speedHoriz < 10 && ctrl.tcl < 0.14
@@ -482,7 +514,10 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
       if (c.onGround) c.roll *= Math.exp(-8 * dt)
       else c.roll += rollCmd * dt
     }
-    c.yaw = wrapAngle(c.yaw + yawCmd * dt)
+    const yawResponse = mode === 'VL' && speedHoriz < 30 ? 4.0 : 2.4
+    c.yawRate += (yawTarget - c.yawRate) * (1 - Math.exp(-yawResponse * dt))
+    c.yawRate *= Math.exp(-(mode === 'VL' ? 0.35 : 0.95) * dt)
+    c.yaw = wrapAngle(c.yaw + c.yawRate * dt)
   } else {
     // v10 WOW: pin bank (deck feel); pitch authority only near rotate speed + stick
     const rotateAuth = clamp(
@@ -697,7 +732,8 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
     const rudAuth = clamp(speedHoriz / 45, 0.15, 1)
     const yawRateGnd = F35_YAW_RATE * (noseAuth * 1.35 + rudAuth * 0.85)
     if (speedHoriz > 0.8 || ctrl.tcl > 0.15) {
-      c.yaw = wrapAngle(c.yaw + steer * yawRateGnd * dt)
+      c.yawRate = steer * yawRateGnd
+      c.yaw = wrapAngle(c.yaw + c.yawRate * dt)
     }
 
     // Align velocity with heading when rolling (no sideways skate)
@@ -788,12 +824,13 @@ export function hardLanding(c: Craft): boolean {
 
 /** Freeze craft if any kinematic field is non-finite. Returns true if a fault was caught. */
 export function sanitizeCraft(c: Craft): boolean {
-  const fields = [c.x, c.y, c.z, c.vx, c.vy, c.vz, c.pitch, c.roll, c.yaw, c.aoa, c.nacelleDeg, c.vectorPos, c.rotorRpm]
+  const fields = [c.x, c.y, c.z, c.vx, c.vy, c.vz, c.pitch, c.roll, c.yaw, c.yawRate, c.aoa, c.nacelleDeg, c.vectorPos, c.rotorRpm]
   if (fields.every((v) => Number.isFinite(v))) {
     // Soft clamp attitudes even when finite
     c.pitch = clamp(c.pitch, -1.2, 1.2)
     c.roll = clamp(c.roll, -1.4, 1.4)
     c.yaw = wrapAngle(c.yaw)
+    c.yawRate = clamp(c.yawRate, -1.5, 1.5)
     c.nacelleDeg = clamp(c.nacelleDeg, 0, 90)
     c.vectorPos = clamp(c.vectorPos, 0, 1)
     c.rotorRpm = clamp(c.rotorRpm, 0, 1.5)
@@ -813,6 +850,7 @@ export function sanitizeCraft(c: Craft): boolean {
   c.pitch = Number.isFinite(c.pitch) ? clamp(c.pitch, -0.5, 0.5) : 0
   c.roll = Number.isFinite(c.roll) ? clamp(c.roll, -0.5, 0.5) : 0
   c.yaw = Number.isFinite(c.yaw) ? wrapAngle(c.yaw) : 0
+  c.yawRate = 0
   c.aoa = 0
   c.rotorRpm = clamp(Number.isFinite(c.rotorRpm) ? c.rotorRpm : 0.2, 0, 1)
   c.nacelleDeg = clamp(Number.isFinite(c.nacelleDeg) ? c.nacelleDeg : 0, 0, 90)
