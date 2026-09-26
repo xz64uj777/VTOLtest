@@ -251,6 +251,11 @@ export function FlightView({ quality, experience, bird, onHangar }: Props) {
         >
           <span>GEAR</span>
           <strong>{simRef.current.craft.gearDown ? 'DOWN' : 'UP'}</strong>
+          <span className="gear-lights" aria-label="Landing gear status">
+            <i className={simRef.current.craft.gearDown ? 'gear-light down' : 'gear-light up'} title="Nose gear" />
+            <i className={simRef.current.craft.gearDown ? 'gear-light down' : 'gear-light up'} title="Left main gear" />
+            <i className={simRef.current.craft.gearDown ? 'gear-light down' : 'gear-light up'} title="Right main gear" />
+          </span>
         </button>
 
         <button
