@@ -1,4 +1,5 @@
 import { trySetGearDown } from '../game/physics'
+import { InstrumentCluster } from './InstrumentCluster'
 import type { Hud, Sim } from '../game/types'
 
 type Props = {
@@ -18,7 +19,7 @@ function fmt(v: number, d = 0): string {
   return v.toFixed(d)
 }
 
-/** Compact Extreme-Landings-style deck: switches + glanceable gauges. */
+/** Full game-style cockpit deck: primary instruments, systems, and flight controls. */
 export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
   const c = sim.craft
   const flapPct = Math.round(clamp(c.flaps, 0, 1) * 100)
@@ -63,54 +64,7 @@ export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
         </button>
       </div>
 
-      <div className="deck-gauges">
-        <div className="deck-gauge">
-          <span className="dk">ASI</span>
-          <span className="dv">{fmt(hud.speed)}</span>
-          <span className="du">kt</span>
-        </div>
-        <div className="deck-gauge">
-          <span className="dk">ALT</span>
-          <span className="dv">{fmt(hud.alt)}</span>
-          <span className="du">m</span>
-        </div>
-        <div className="deck-gauge">
-          <span className="dk">VS</span>
-          <span className={`dv ${hud.vs < -1 ? 'neg' : hud.vs > 1 ? 'pos' : ''}`}>
-            {hud.vs >= 0 ? '+' : ''}
-            {fmt(vsFpm / 100, 0)}
-          </span>
-          <span className="du">×100</span>
-        </div>
-        <div className="deck-gauge">
-          <span className="dk">HDG</span>
-          <span className="dv">{Number.isFinite(hud.hdg) ? hud.hdg.toFixed(0).padStart(3, '0') : '---'}</span>
-          <span className="du">°</span>
-        </div>
-        <div className="deck-gauge">
-          <span className="dk">{hud.bird === 'osprey' ? 'NAC' : 'VEC'}</span>
-          <span className="dv">{nacOrVec}</span>
-        </div>
-        <div className="deck-gauge">
-          <span className="dk">N1</span>
-          <span className="dv">{n1}</span>
-          <span className="du">%</span>
-        </div>
-      </div>
-
-      <div className="deck-hdg-strip" aria-hidden>
-        <div
-          className="deck-hdg-tape"
-          style={{ transform: `translateX(${50 - ((hud.hdg % 360) / 360) * 100}%)` }}
-        >
-          {[-90, -45, 0, 45, 90, 135, 180, 225, 270, 315, 360, 405].map((a) => (
-            <span key={a} className="deck-hdg-tick">
-              {((a % 360) + 360) % 360}
-            </span>
-          ))}
-        </div>
-        <span className="deck-hdg-caret">▼</span>
-      </div>
+      <InstrumentCluster sim={sim} hud={hud} />
 
       <div className="deck-emer">
         <span className="deck-emer-lab">EMER</span>
