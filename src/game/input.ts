@@ -75,10 +75,13 @@ export function sampleControls(
   const k = input.keys
   const sens = SENS_SCALE[prefs.sens]
   const casual = prefs.pitchMode !== 'realistic'
-  // v11: Casual stick-up = nose UP. Roll stays Casual (stick-right = bank right).
-  // Invert pitch in Systems if a phone still feels backwards.
+  // Pitch convention and roll direction are intentionally independent.
+  // Casual: stick-up = nose UP. Realistic: stick-up = nose DOWN.
+  // Explicit inversion toggles are applied on top of those choices.
   const pitchSign = (casual ? -1 : 1) * (prefs.invertPitch ? -1 : 1)
-  const rollSign = (casual ? -1 : 1) * (prefs.invertRoll ? -1 : 1)
+  // Roll is independent of pitch convention. Screen/right stick always means right bank
+  // unless the player explicitly enables Invert Roll.
+  const rollSign = prefs.invertRoll ? -1 : 1
 
   let stickPitch = applyDeadzone(input.stickY) * sens
   let stickRoll = applyDeadzone(input.stickX) * sens
