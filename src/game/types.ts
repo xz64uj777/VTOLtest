@@ -41,6 +41,8 @@ export type Craft = {
   pitch: number
   roll: number
   yaw: number
+  /** Smoothed body yaw rate rad/s. Prevents instant flat-spin heading changes. */
+  yawRate: number
   onGround: boolean
   rotorRpm: number
   /** Osprey nacelle degrees: 90=HEL, 0=APL. */
