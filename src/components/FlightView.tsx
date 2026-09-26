@@ -146,7 +146,30 @@ export function FlightView({ quality, experience, bird, onHangar }: Props) {
             </button>
           </div>
           <p className="settings-hint">
-            Casual (default): stick-up / W → nose UP. Realistic: heli nose-down.
+            Pitch convention affects pitch only. Roll direction no longer changes with this setting.
+          </p>
+          <div className="settings-row">
+            <span>Invert pitch</span>
+            <button
+              type="button"
+              className={prefs.invertPitch ? 'active' : ''}
+              onClick={toggleInvertPitch}
+            >
+              {prefs.invertPitch ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div className="settings-row">
+            <span>Invert roll</span>
+            <button
+              type="button"
+              className={prefs.invertRoll ? 'active' : ''}
+              onClick={toggleInvertRoll}
+            >
+              {prefs.invertRoll ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <p className="settings-hint">
+            These two inversion switches are independent and are saved for future flights.
           </p>
           <div className="settings-row">
             <span>Tilt cyclic</span>
