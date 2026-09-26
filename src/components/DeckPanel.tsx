@@ -14,10 +14,6 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v))
 }
 
-function fmt(v: number, d = 0): string {
-  if (!Number.isFinite(v)) return '---'
-  return v.toFixed(d)
-}
 
 /** Full game-style cockpit deck: primary instruments, systems, and flight controls. */
 export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
@@ -48,17 +44,11 @@ export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
     )
   }
 
-  const vsFpm = hud.vs * 196.85 // m/s → ft/min-ish cue
-  const n1 = Math.round(hud.rpm * 100)
-  const nacOrVec =
-    hud.bird === 'osprey'
-      ? `${fmt(hud.nacelleDeg)}°`
-      : `${Math.round(hud.vectorPos * 100)}%`
 
   return (
     <div className="deck-panel" onClick={(e) => e.stopPropagation()}>
       <div className="deck-panel-head">
-        <span className="deck-panel-title">DECK</span>
+        <span className="deck-panel-title">FLIGHT DECK · FULL INSTRUMENTS</span>
         <button type="button" className="deck-panel-hide" onClick={onToggle} title="Hide deck">
           ▾
         </button>
