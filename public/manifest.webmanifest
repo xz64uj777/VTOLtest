@@ -1,0 +1,11 @@
+{
+  "name": "Osprey Flight",
+  "short_name": "Osprey",
+  "description": "Phone-first tiltrotor and STOVL flight simulator.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#07101a",
+  "theme_color": "#07101a"
+}
