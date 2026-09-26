@@ -81,6 +81,10 @@ export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t
 }
 
+function angleDelta(target: number, current: number): number {
+  return wrapAngle(target - current)
+}
+
 export function nacelleCmdToDeg(cmd: number): number {
   return clamp(cmd, 0, 1) * 90
 }
@@ -222,26 +226,20 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
   let pitchCmd = ctrl.cyclicPitch * pitchRate
   let rollCmd = ctrl.cyclicRoll * rollRate
 
-  // Yaw is mode- and speed-dependent instead of directly rotating the aircraft.
-  // In HEL/very-low-speed flight pedals can pivot the aircraft. In APL/fast CONV,
-  // bank creates the turn and pedals mainly trim sideslip.
-  const wingborne = clamp((speedHoriz - 10) / 32, 0, 1) * clamp(aplFrac * 1.15, 0, 1)
-  const hoverYaw = clamp(helFrac * (1 - speedHoriz / 42), 0, 1)
-  const coordinatedYaw =
-    -Math.tan(clamp(c.roll, -0.72, 0.72)) * GRAVITY / Math.max(speedHoriz, 18) * wingborne
-  const pedalYaw =
-    ctrl.yaw * yawRate * (hoverYaw * 0.78 + (1 - wingborne) * 0.16 + wingborne * 0.07)
-  let yawTarget = coordinatedYaw + pedalYaw
-  if (helFrac > 0.55 && speedHoriz < 28) {
-    yawTarget += ctrl.tcl * 0.035 * ctrl.cyclicRoll * helFrac
+  // HEL can pivot on pedals. Once wing-borne, however, heading follows the
+  // horizontal flight path and pedals are limited to a small sideslip angle.
+  const wingborne = clamp((speedHoriz - 9) / 28, 0, 1) * clamp(aplFrac * 1.18, 0, 1)
+  const hoverYawAuthority = clamp(helFrac * (1 - speedHoriz / 38), 0, 1)
+  const flightPathYaw = speedHoriz > 4 ? Math.atan2(c.vx, c.vz) : c.yaw
+  const maxSlip = (mode === 'CONV' ? 11 : 8) * (Math.PI / 180)
+  const forwardYawTarget = wrapAngle(flightPathYaw + ctrl.yaw * maxSlip)
+  let hoverYawRate = ctrl.yaw * yawRate * 0.7 * hoverYawAuthority
+  if (helFrac > 0.6 && speedHoriz < 24) {
+    hoverYawRate += ctrl.tcl * 0.025 * ctrl.cyclicRoll * helFrac
   }
 
   // On the wheels in airplane-like nacelle angles, only allow modest steering while rolling.
   const deckAirplane = c.onGround && helFrac < 0.75
-  if (deckAirplane) {
-    const steerAuth = clamp(speedHoriz / 10, 0, 0.45)
-    yawTarget = speedHoriz < 0.8 && ctrl.tcl < 0.15 ? 0 : ctrl.yaw * yawRate * steerAuth
-  }
   if (c.onGround) {
     rollCmd = 0
     // v11: parked / walking speed + no power — stick does not rock the nose.
@@ -259,9 +257,15 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
 
   c.pitch += pitchCmd * dt
   c.roll += rollCmd * dt
-  const yawResponse = mode === 'HEL' && speedHoriz < 25 ? 3.8 : 2.2
-  c.yawRate += (yawTarget - c.yawRate) * (1 - Math.exp(-yawResponse * dt))
-  c.yawRate *= Math.exp(-(mode === 'HEL' ? 0.35 : 0.7) * dt)
+  const forwardAlignRate = clamp(angleDelta(forwardYawTarget, c.yaw) * 3.0, -0.55, 0.55)
+  let yawTargetRate = lerp(hoverYawRate, forwardAlignRate, wingborne)
+  if (deckAirplane) {
+    const steerAuth = clamp(speedHoriz / 10, 0, 0.35)
+    yawTargetRate = speedHoriz < 0.8 && ctrl.tcl < 0.15 ? 0 : ctrl.yaw * yawRate * steerAuth
+  }
+  const yawResponse = wingborne > 0.5 ? 5.0 : mode === 'HEL' ? 3.5 : 2.8
+  c.yawRate += (yawTargetRate - c.yawRate) * (1 - Math.exp(-yawResponse * dt))
+  c.yawRate *= Math.exp(-(wingborne > 0.5 ? 1.8 : 0.45) * dt)
   c.yaw = wrapAngle(c.yaw + c.yawRate * dt)
 
   // Wider limits in CONV so short-takeoff rotate / dive-for-speed works
@@ -484,22 +488,21 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   const pitchCmd = ctrl.cyclicPitch * F35_PITCH_RATE
   let rollCmd = ctrl.cyclicRoll * F35_ROLL_RATE
 
-  // Fighter turns are bank-driven at speed. Rudder has only limited heading authority in
-  // CTOL flight; strong pedal pivoting is reserved for VL/STOVL at very low speed.
-  const forwardFlight = clamp((speedHoriz - 12) / 38, 0, 1) * clamp(1 - vlFrac * 0.78, 0.12, 1)
+  // VL/STOVL can pivot at very low speed. In forward flight the nose follows
+  // the velocity vector; rudder can only create a small slip angle, not a flat turn.
+  const forwardFlight = clamp((speedHoriz - 10) / 34, 0, 1) * clamp(1 - vlFrac * 0.86, 0.08, 1)
   const hoverAuthority =
     mode === 'VL'
-      ? clamp(1 - speedHoriz / 42, 0.18, 1)
+      ? clamp(1 - speedHoriz / 36, 0, 1)
       : mode === 'STOVL'
-        ? clamp(1 - speedHoriz / 65, 0.08, 0.68)
+        ? clamp(1 - speedHoriz / 52, 0, 0.58)
         : 0
-  const coordinatedYaw =
-    -Math.tan(clamp(c.roll, -0.78, 0.78)) * GRAVITY / Math.max(speedHoriz, 24) * forwardFlight
-  const rudderYaw =
-    ctrl.yaw * F35_YAW_RATE * (hoverAuthority * 0.62 + (1 - hoverAuthority) * (0.045 + 0.035 * (1 - forwardFlight)))
-  let yawTarget = coordinatedYaw + rudderYaw
-  if (mode === 'VL' && speedHoriz < 30) {
-    yawTarget += ctrl.tcl * 0.025 * ctrl.cyclicRoll
+  const flightPathYaw = speedHoriz > 5 ? Math.atan2(c.vx, c.vz) : c.yaw
+  const maxSlip = (mode === 'STOVL' ? 9 : 5) * (Math.PI / 180)
+  const forwardYawTarget = wrapAngle(flightPathYaw + ctrl.yaw * maxSlip)
+  let hoverYawRate = ctrl.yaw * F35_YAW_RATE * 0.58 * hoverAuthority
+  if (mode === 'VL' && speedHoriz < 24) {
+    hoverYawRate += ctrl.tcl * 0.02 * ctrl.cyclicRoll
   }
   if (c.failAsymmetric) rollCmd += 0.2
 
@@ -514,9 +517,11 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
       if (c.onGround) c.roll *= Math.exp(-8 * dt)
       else c.roll += rollCmd * dt
     }
-    const yawResponse = mode === 'VL' && speedHoriz < 30 ? 4.0 : 2.4
-    c.yawRate += (yawTarget - c.yawRate) * (1 - Math.exp(-yawResponse * dt))
-    c.yawRate *= Math.exp(-(mode === 'VL' ? 0.35 : 0.95) * dt)
+    const forwardAlignRate = clamp(angleDelta(forwardYawTarget, c.yaw) * 3.4, -0.42, 0.42)
+    const yawTargetRate = lerp(hoverYawRate, forwardAlignRate, forwardFlight)
+    const yawResponse = forwardFlight > 0.5 ? 5.5 : mode === 'VL' ? 4.0 : 3.0
+    c.yawRate += (yawTargetRate - c.yawRate) * (1 - Math.exp(-yawResponse * dt))
+    c.yawRate *= Math.exp(-(forwardFlight > 0.5 ? 2.2 : 0.5) * dt)
     c.yaw = wrapAngle(c.yaw + c.yawRate * dt)
   } else {
     // v10 WOW: pin bank (deck feel); pitch authority only near rotate speed + stick
