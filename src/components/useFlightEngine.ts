@@ -76,7 +76,7 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
   const showSettingsRef = useRef(false)
   const [tick, setTick] = useState(0)
   const bump = useCallback(() => setTick((t) => t + 1), [])
-  const [deckOpen, setDeckOpen] = useState(experience !== 'casual')
+  const [deckOpen, setDeckOpen] = useState(false)
   const camTouchRef = useRef<{
     id: number | null
     x: number
@@ -111,7 +111,6 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
     prefsRef.current.experience = experience
     simRef.current.experience = experience
     simRef.current.quality = quality
-    setDeckOpen(experience !== 'casual')
   }, [experience, quality])
   useEffect(() => {
     const sim = simRef.current
