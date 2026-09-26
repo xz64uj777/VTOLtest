@@ -38,7 +38,7 @@ export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
 
   if (!visible) {
     return (
-      <button type="button" className="deck-panel-tab" onClick={onToggle} title="Show deck">
+      <button type="button" className="deck-panel-tab" onClick={onToggle} title="Show cockpit">
         DECK
       </button>
     )
@@ -48,69 +48,13 @@ export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
   return (
     <div className="deck-panel" onClick={(e) => e.stopPropagation()}>
       <div className="deck-panel-head">
-        <span className="deck-panel-title">FLIGHT DECK · FULL INSTRUMENTS</span>
+        <span className="deck-panel-title">COCKPIT · FLIGHT INSTRUMENTS</span>
         <button type="button" className="deck-panel-hide" onClick={onToggle} title="Hide deck">
           ▾
         </button>
       </div>
 
       <InstrumentCluster sim={sim} hud={hud} />
-
-      <div className="deck-emer">
-        <span className="deck-emer-lab">EMER</span>
-        <button
-          type="button"
-          className="deck-sw down"
-          title="Emergency gear down"
-          onClick={() => {
-            trySetGearDown(c, true)
-            bump()
-          }}
-        >
-          <span className="sw-lab">GEAR</span>
-          <span className="sw-val">DOWN</span>
-        </button>
-        <button
-          type="button"
-          className="deck-sw"
-          onClick={() => {
-            sim.controls.flaps = 1
-            c.flaps = 1
-            bump()
-          }}
-        >
-          <span className="sw-lab">FLAPS</span>
-          <span className="sw-val">FULL</span>
-        </button>
-        <button
-          type="button"
-          className="deck-sw warn"
-          onClick={() => {
-            sim.controls.tcl = 0
-            bump()
-          }}
-        >
-          <span className="sw-lab">THR</span>
-          <span className="sw-val">CUT</span>
-        </button>
-        <button
-          type="button"
-          className="deck-sw"
-          onClick={() => {
-            if (c.kind === 'f35') {
-              sim.controls.vector = 0
-              c.vectorPos = 0
-            } else {
-              sim.controls.nacelle = 0
-              c.nacelleDeg = 0
-            }
-            bump()
-          }}
-        >
-          <span className="sw-lab">MODE</span>
-          <span className="sw-val">{c.kind === 'f35' ? 'CTOL' : 'APL'}</span>
-        </button>
-      </div>
 
       <div className="deck-switches">
         <button
