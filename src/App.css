@@ -2058,3 +2058,25 @@
     grid-template-columns: repeat(3, minmax(38px,1fr));
   }
 }
+
+
+/* v15: cockpit is optional and must not own the outside view. */
+.deck-panel-tab {
+  bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 5px 12px;
+  opacity: .88;
+}
+.deck-panel {
+  max-height: 30vh;
+}
+@media (max-width: 900px) and (orientation: landscape) {
+  .deck-panel {
+    max-height: 29vh;
+  }
+}
+@media (max-width: 560px) {
+  .deck-panel {
+    max-height: 31vh;
+    bottom: max(118px, 24vh);
+  }
+}
