@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import type { Hud, Sim } from '../game/types'
 
 type Props = {
@@ -10,234 +10,176 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v))
 }
 
-function angleFor(v: number, min: number, max: number, sweep = 270) {
-  const t = clamp((v - min) / Math.max(0.0001, max - min), 0, 1)
-  return -sweep / 2 + t * sweep
-}
-
-function RoundGauge({
+function Tape({
   label,
   value,
   unit,
-  min,
-  max,
-  display,
-  danger = false,
+  step,
 }: {
   label: string
   value: number
   unit: string
-  min: number
-  max: number
-  display?: string
-  danger?: boolean
+  step: number
 }) {
-  const style = {
-    '--needle-angle': `${angleFor(value, min, max)}deg`,
-  } as CSSProperties
-
+  const marks = [-2, -1, 0, 1, 2]
   return (
-    <div className={`inst-round ${danger ? 'inst-danger' : ''}`}>
-      <span className="inst-label">{label}</span>
-      <div className="inst-dial" style={style}>
-        {Array.from({ length: 11 }, (_, i) => (
-          <i key={i} className="inst-tick" style={{ transform: `rotate(${-135 + i * 27}deg)` }} />
-        ))}
-        <span className="inst-needle" />
-        <span className="inst-hub" />
+    <div className="pfd-tape">
+      <span className="pfd-tape-label">{label}</span>
+      <div className="pfd-tape-scale">
+        {marks.map((n) => {
+          const v = Math.max(0, Math.round((value + n * step) / step) * step)
+          return (
+            <span key={n} className={n === 0 ? 'major' : ''}>
+              {Math.round(v)}
+            </span>
+          )
+        })}
       </div>
-      <strong>{display ?? Math.round(value)}</strong>
+      <div className="pfd-tape-box">{Math.round(value)}</div>
       <small>{unit}</small>
     </div>
   )
 }
 
-function Attitude({ pitch, bank }: { pitch: number; bank: number }) {
-  const style = {
-    '--att-bank': `${clamp(bank, -60, 60)}deg`,
-    '--att-pitch': `${clamp(pitch, -25, 25) * 1.25}px`,
+function Pfd({ sim, hud }: Props) {
+  const c = sim.craft
+  const pitchDeg = clamp((-c.pitch * 180) / Math.PI, -45, 45)
+  const bankDeg = clamp((c.roll * 180) / Math.PI, -65, 65)
+  const altFt = hud.alt * 3.28084
+  const vsFpm = hud.vs * 196.8504
+  const worldStyle = {
+    '--pfd-bank': `${bankDeg}deg`,
+    '--pfd-pitch': `${pitchDeg * 1.6}px`,
   } as CSSProperties
 
   return (
-    <div className="inst-attitude">
-      <span className="inst-label">ATTITUDE</span>
-      <div className="att-bezel">
-        <div className="att-world" style={style}>
-          <div className="att-sky" />
-          <div className="att-ground" />
-          <div className="att-horizon" />
+    <div className="pfd-screen">
+      <Tape label="SPD" value={hud.speed} unit="KT" step={10} />
+      <div className="pfd-center">
+        <div className="pfd-attitude">
+          <div className="pfd-world" style={worldStyle}>
+            <div className="pfd-sky" />
+            <div className="pfd-ground" />
+            <div className="pfd-horizon" />
+            {[-20, -10, 10, 20].map((p) => (
+              <span key={p} className="pfd-pitch-line" style={{ top: `${50 - p * 1.1}%` }}>
+                {Math.abs(p)}
+              </span>
+            ))}
+          </div>
+          <span className="pfd-wing pfd-wing-l" />
+          <span className="pfd-wing pfd-wing-r" />
+          <span className="pfd-center-dot" />
+          <div className="pfd-bank-scale">
+            <i>30</i><i>20</i><i>10</i><b>▼</b><i>10</i><i>20</i><i>30</i>
+          </div>
         </div>
-        <span className="att-wing att-wing-l" />
-        <span className="att-wing att-wing-r" />
-        <span className="att-center" />
+
+        <div className="pfd-heading">
+          <span>W</span>
+          <span>{((hud.hdg + 330) % 360).toFixed(0).padStart(3, '0')}</span>
+          <strong>{hud.hdg.toFixed(0).padStart(3, '0')}°</strong>
+          <span>{((hud.hdg + 30) % 360).toFixed(0).padStart(3, '0')}</span>
+          <span>E</span>
+        </div>
+
+        <div className="pfd-footer">
+          <span>{hud.bird === 'osprey' ? `NAC ${hud.nacelleDeg.toFixed(0)}°` : `VEC ${Math.round(hud.vectorPos * 100)}%`}</span>
+          <strong>{hud.mode}</strong>
+          <span>VS {vsFpm >= 0 ? '+' : ''}{Math.round(vsFpm)}</span>
+        </div>
       </div>
-      <div className="att-readout">
-        <span>P {pitch >= 0 ? '+' : ''}{pitch.toFixed(0)}°</span>
-        <span>B {bank >= 0 ? '+' : ''}{bank.toFixed(0)}°</span>
-      </div>
+      <Tape label="ALT" value={altFt} unit="FT" step={100} />
     </div>
   )
 }
 
-function Heading({ heading }: { heading: number }) {
-  const card = {
-    transform: `rotate(${-heading}deg)`,
-  } as CSSProperties
+function Lever({
+  label,
+  value,
+  top,
+  bottom,
+}: {
+  label: string
+  value: number
+  top: string
+  bottom: string
+}) {
+  const pct = clamp(value, 0, 1)
   return (
-    <div className="inst-heading">
-      <span className="inst-label">HEADING</span>
-      <div className="hdg-bezel">
-        <div className="hdg-card" style={card}>
-          {[
-            ['N', 0],
-            ['3', 30],
-            ['6', 60],
-            ['E', 90],
-            ['12', 120],
-            ['15', 150],
-            ['S', 180],
-            ['21', 210],
-            ['24', 240],
-            ['W', 270],
-            ['30', 300],
-            ['33', 330],
-          ].map(([txt, deg]) => (
-            <span key={String(txt)} style={{ transform: `rotate(${deg}deg) translateY(-28px) rotate(${-deg}deg)` }}>
-              {txt}
-            </span>
-          ))}
-        </div>
-        <span className="hdg-index">▼</span>
+    <div className="cockpit-lever">
+      <span>{label}</span>
+      <div className="cockpit-lever-slot">
+        <i style={{ bottom: `calc(${pct * 100}% - 9px)` }} />
       </div>
-      <strong>{Math.round(heading).toString().padStart(3, '0')}°</strong>
+      <small className="lever-top">{top}</small>
+      <small className="lever-bottom">{bottom}</small>
+      <strong>{Math.round(pct * 100)}%</strong>
     </div>
   )
 }
 
-function Annunciator({
+function SystemLamp({
   label,
   state,
-  tone = 'normal',
+  danger = false,
 }: {
   label: string
   state: string
-  tone?: 'normal' | 'ok' | 'warn' | 'danger'
+  danger?: boolean
 }) {
   return (
-    <div className={`ann ann-${tone}`}>
+    <div className={`cockpit-lamp ${danger ? 'danger' : ''}`}>
       <span>{label}</span>
       <strong>{state}</strong>
     </div>
   )
 }
 
-function Meter({
-  label,
-  value,
-  unit,
-  tone = 'normal',
-  children,
-}: {
-  label: string
-  value: number
-  unit: string
-  tone?: 'normal' | 'ok' | 'warn' | 'danger'
-  children?: ReactNode
-}) {
-  const pct = clamp(value, 0, 100)
-  return (
-    <div className={`inst-meter inst-meter-${tone}`}>
-      <div className="inst-meter-head">
-        <span>{label}</span>
-        <strong>{Math.round(value)}{unit}</strong>
-      </div>
-      <div className="inst-meter-track">
-        <i style={{ width: `${pct}%` }} />
-      </div>
-      {children}
-    </div>
-  )
-}
-
 export function InstrumentCluster({ sim, hud }: Props) {
   const c = sim.craft
-  // Physics stores nose-up as negative pitch; present conventional positive nose-up to player.
-  const pitchDeg = clamp((-c.pitch * 180) / Math.PI, -90, 90)
-  const bankDeg = clamp((c.roll * 180) / Math.PI, -90, 90)
-  const altFt = hud.alt * 3.28084
-  const vsFpm = hud.vs * 196.8504
-  const speedDanger = hud.bird === 'f35' ? hud.speed > 500 : hud.speed > 320
-  const sinkDanger = !hud.onGround && hud.alt < 70 && hud.vs < -5.5
-  const fuelPct = clamp(c.fuel * 100, 0, 100)
-  const rpmPct = clamp(hud.rpm * 100, 0, 120)
-  const powerPct = clamp(hud.tcl * 100, 0, 100)
-  const engL = clamp(c.engineL * 100, 0, 100)
-  const engR = clamp(c.engineR * 100, 0, 100)
-  const modePct = hud.bird === 'osprey' ? (hud.nacelleDeg / 90) * 100 : hud.vectorPos * 100
-  const modeLabel = hud.bird === 'osprey' ? 'NACELLE' : 'VECTOR'
-  const modeUnit = hud.bird === 'osprey' ? `${Math.round(hud.nacelleDeg)}°` : `${Math.round(modePct)}%`
+  const power = clamp(hud.tcl, 0, 1)
+  const mode = hud.bird === 'osprey' ? clamp(hud.nacelleDeg / 90, 0, 1) : clamp(hud.vectorPos, 0, 1)
   const flapPct = Math.round(hud.flaps * 100)
+  const fuelPct = Math.round(clamp(c.fuel, 0, 1) * 100)
 
   return (
-    <div className="instrument-cluster">
-      <div className="instrument-main">
-        <RoundGauge
-          label="AIRSPEED"
-          value={hud.speed}
-          unit="KTS"
-          min={0}
-          max={hud.bird === 'f35' ? 600 : 360}
-          danger={speedDanger}
-        />
-        <Attitude pitch={pitchDeg} bank={bankDeg} />
-        <RoundGauge
-          label="ALTITUDE"
-          value={altFt % 10000}
-          unit="FT"
-          min={0}
-          max={10000}
-          display={Math.round(altFt).toString()}
-        />
-        <RoundGauge
-          label="VERT SPEED"
-          value={vsFpm}
-          unit="FPM"
-          min={-3000}
-          max={3000}
-          display={`${vsFpm >= 0 ? '+' : ''}${Math.round(vsFpm)}`}
-          danger={sinkDanger}
-        />
-        <Heading heading={hud.hdg} />
-        <RoundGauge
-          label={hud.bird === 'f35' ? 'AOA' : 'POWER'}
-          value={hud.bird === 'f35' ? hud.aoaDeg : powerPct}
-          unit={hud.bird === 'f35' ? 'DEG' : '%'}
-          min={hud.bird === 'f35' ? -10 : 0}
-          max={hud.bird === 'f35' ? 35 : 100}
-          display={hud.bird === 'f35' ? hud.aoaDeg.toFixed(0) : Math.round(powerPct).toString()}
-        />
+    <div className="cockpit-console">
+      <div className="cockpit-side cockpit-side-left">
+        <Lever label={hud.bird === 'f35' ? 'THROTTLE' : 'TCL'} value={power} top="MAX" bottom="IDLE" />
+        <div className="cockpit-engine-strip">
+          <SystemLamp label="RPM" state={`${Math.round(hud.rpm * 100)}%`} />
+          <SystemLamp label="FUEL" state={`${fuelPct}%`} danger={fuelPct < 15} />
+        </div>
       </div>
 
-      <div className="instrument-secondary">
-        <Meter label="POWER" value={powerPct} unit="%" tone={powerPct > 92 ? 'warn' : 'ok'} />
-        <Meter label="RPM / N1" value={rpmPct} unit="%" tone={rpmPct > 105 ? 'warn' : 'normal'} />
-        <Meter label="FUEL" value={fuelPct} unit="%" tone={fuelPct < 15 ? 'danger' : fuelPct < 30 ? 'warn' : 'ok'} />
-        <Meter label="ENGINE L" value={engL} unit="%" tone={engL < 60 ? 'danger' : 'ok'} />
-        <Meter label="ENGINE R" value={engR} unit="%" tone={engR < 60 ? 'danger' : 'ok'} />
-        <Meter label={modeLabel} value={modePct} unit="">
-          <span className="inst-meter-note">{modeUnit} · {hud.mode}</span>
-        </Meter>
+      <div className="cockpit-center">
+        <Pfd sim={sim} hud={hud} />
+        <div className="cockpit-annunciators">
+          <SystemLamp label="GEAR" state={c.gearDown ? 'DOWN' : 'UP'} />
+          <SystemLamp label="FLAPS" state={`${flapPct}%`} />
+          <SystemLamp label="ELEC" state={c.electricsOn ? 'ON' : 'OFF'} danger={!c.electricsOn} />
+          <SystemLamp label="APU" state={c.apuOn ? 'ON' : 'OFF'} />
+          <SystemLamp label="HYD" state={c.failHyd ? 'FAIL' : 'OK'} danger={c.failHyd} />
+          <SystemLamp label="ASYM" state={c.failAsymmetric ? 'FAIL' : 'OK'} danger={c.failAsymmetric} />
+        </div>
       </div>
 
-      <div className="instrument-annunciators">
-        <Annunciator label="GEAR" state={c.gearDown ? 'DOWN' : 'UP'} tone={c.gearDown ? 'ok' : 'normal'} />
-        <Annunciator label="FLAPS" state={`${flapPct}%`} tone={flapPct > 0 ? 'ok' : 'normal'} />
-        <Annunciator label="PARK" state={c.parkingBrake ? 'SET' : 'OFF'} tone={c.parkingBrake ? 'warn' : 'normal'} />
-        <Annunciator label="ELEC" state={c.electricsOn ? 'ON' : 'OFF'} tone={c.electricsOn ? 'ok' : 'danger'} />
-        <Annunciator label="APU" state={c.apuOn ? 'ON' : 'OFF'} tone={c.apuOn ? 'ok' : 'normal'} />
-        <Annunciator label="LIGHTS" state={c.lightsOn ? 'ON' : 'OFF'} tone={c.lightsOn ? 'ok' : 'normal'} />
-        <Annunciator label="HYD" state={c.failHyd ? 'FAIL' : 'OK'} tone={c.failHyd ? 'danger' : 'ok'} />
-        <Annunciator label="ASYM" state={c.failAsymmetric ? 'FAIL' : 'OK'} tone={c.failAsymmetric ? 'danger' : 'ok'} />
+      <div className="cockpit-side cockpit-side-right">
+        <Lever
+          label={hud.bird === 'osprey' ? 'NACELLE' : 'VECTOR'}
+          value={mode}
+          top={hud.bird === 'osprey' ? 'HEL' : 'VL'}
+          bottom={hud.bird === 'osprey' ? 'APL' : 'CTOL'}
+        />
+        <div className="cockpit-engine-strip">
+          <SystemLamp label="ENG L" state={`${Math.round(c.engineL * 100)}%`} danger={c.engineL < 0.6} />
+          {hud.bird === 'osprey' ? (
+            <SystemLamp label="ENG R" state={`${Math.round(c.engineR * 100)}%`} danger={c.engineR < 0.6} />
+          ) : (
+            <SystemLamp label="AOA" state={`${hud.aoaDeg.toFixed(0)}°`} />
+          )}
+        </div>
       </div>
     </div>
   )
