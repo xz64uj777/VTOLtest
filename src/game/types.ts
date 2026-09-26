@@ -112,7 +112,6 @@ export type SystemsPanel =
   | 'electrics'
   | 'autopilot'
   | 'failures'
-  | 'emer'
 
 export type Sim = {
   phase: Phase
