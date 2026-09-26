@@ -49,8 +49,8 @@ export function defaultPrefs(): FlightPrefs {
   return {
     sens: 'med',
     pitchMode: 'casual',
-    invertPitch: false,
-    invertRoll: false,
+    invertPitch: true,
+    invertRoll: true,
     tiltCyclic: false,
     gyroZeroBeta: 0,
     gyroZeroGamma: 0,
