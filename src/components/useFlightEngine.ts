@@ -12,7 +12,6 @@ import {
   type GyroBind,
 } from '../game/input'
 import {
-  defaultPrefs,
   loadPrefs,
   savePrefs,
   GYRO_HOLDOVER_MS,
