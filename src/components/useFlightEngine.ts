@@ -13,6 +13,8 @@ import {
 } from '../game/input'
 import {
   defaultPrefs,
+  loadPrefs,
+  savePrefs,
   GYRO_HOLDOVER_MS,
   GYRO_LIVE_MS,
   TILT_NO_SIGNAL_HINT,
@@ -43,7 +45,7 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const simRef = useRef(createSim(quality, experience, bird))
   const inputRef = useRef(createInput())
-  const prefsRef = useRef<FlightPrefs>({ ...defaultPrefs(), experience })
+  const prefsRef = useRef<FlightPrefs>({ ...loadPrefs(), experience })
   const rendererRef = useRef(new Renderer())
   const audioRef = useRef(new FlightAudio())
   const gyroRef = useRef<GyroBind | null>(null)
@@ -59,7 +61,7 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
   const [controlsSync, setControlsSync] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [prefs, setPrefs] = useState<FlightPrefs>(() => ({ ...defaultPrefs(), experience }))
+  const [prefs, setPrefs] = useState<FlightPrefs>(() => ({ ...loadPrefs(), experience }))
   const [calStatus, setCalStatus] = useState<string | null>(null)
   const [tiltHb, setTiltHb] = useState<TiltHeartbeat>('off')
   const [tiltSticky, setTiltSticky] = useState<string | null>(null)
@@ -87,6 +89,7 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
     setPrefs((p) => {
       const next = { ...p, ...partial }
       prefsRef.current = next
+      savePrefs(next)
       return next
     })
   }, [])
@@ -121,17 +124,15 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
     inputRef.current.touchNacelle = 0
     inputRef.current.touchVector = 0
     setControlsSync((n) => n + 1)
-    const base = { ...defaultPrefs(), experience, tipSeen: false }
+    // Keep player control preferences across aircraft changes/restarts.
+    // Pitch convention never changes roll direction; inversion toggles remain independent.
     prefsRef.current = {
-      ...base,
-      sens: prefsRef.current.sens,
-      pitchMode: prefsRef.current.pitchMode,
-      tiltCyclic: prefsRef.current.tiltCyclic,
-      gyroZeroBeta: prefsRef.current.gyroZeroBeta,
-      gyroZeroGamma: prefsRef.current.gyroZeroGamma,
-      gyroReady: prefsRef.current.gyroReady,
+      ...prefsRef.current,
+      experience,
+      tipSeen: false,
     }
-    setPrefs(prefsRef.current)
+    savePrefs(prefsRef.current)
+    setPrefs({ ...prefsRef.current })
     const unbind = bindKeyboard(inputRef.current)
     const gyro = bindGyro(inputRef.current)
     gyroRef.current = gyro
