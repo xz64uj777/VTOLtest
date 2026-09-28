@@ -1,9 +1,9 @@
 import type { QualityKey } from '../game/config'
 import { cycleCamera, resetCameraView, startFlight } from '../game/sim'
-import { trySetGearDown } from '../game/physics'
 import type { BirdKind, Experience } from '../game/types'
 import { DeckPanel } from './DeckPanel'
 import { FlightAdvisory } from './FlightAdvisory'
+import { FlightControlPedestal } from './FlightControlPedestal'
 import { HUD } from './HUD'
 import { SystemsMenu } from './SystemsMenu'
 import { VirtualControls } from './VirtualControls'
@@ -236,54 +236,7 @@ export function FlightView({ quality, experience, bird, onHangar }: Props) {
         </div>
       )}
 
-      <div className="flight-essential-controls">
-        <button
-          type="button"
-          className={`essential-toggle gear-toggle ${simRef.current.craft.gearDown ? 'is-down' : 'is-up'}`}
-          onClick={() => {
-            const craft = simRef.current.craft
-            const wantDown = !craft.gearDown
-            const ok = trySetGearDown(craft, wantDown)
-            if (!ok) simRef.current.message = 'Gear locked — get airborne to retract'
-            bump()
-          }}
-          title="Landing gear up/down"
-        >
-          <span>GEAR</span>
-          <strong>{simRef.current.craft.gearDown ? 'DOWN' : 'UP'}</strong>
-          <span className="gear-lights" aria-label="Landing gear status">
-            <i className={simRef.current.craft.gearDown ? 'gear-light down' : 'gear-light up'} title="Nose gear" />
-            <i className={simRef.current.craft.gearDown ? 'gear-light down' : 'gear-light up'} title="Left main gear" />
-            <i className={simRef.current.craft.gearDown ? 'gear-light down' : 'gear-light up'} title="Right main gear" />
-          </span>
-        </button>
-
-        <button
-          type="button"
-          className={`essential-toggle flap-toggle ${simRef.current.craft.flaps > 0 ? 'active' : ''}`}
-          onClick={() => {
-            const sim = simRef.current
-            const steps = [0, 0.25, 0.5, 1]
-            let nearest = 0
-            let best = Number.POSITIVE_INFINITY
-            for (let i = 0; i < steps.length; i++) {
-              const d = Math.abs(steps[i]! - sim.craft.flaps)
-              if (d < best) {
-                best = d
-                nearest = i
-              }
-            }
-            const next = steps[(nearest + 1) % steps.length]!
-            sim.controls.flaps = next
-            sim.craft.flaps = next
-            bump()
-          }}
-          title="Cycle flaps: 0 / 25 / 50 / 100"
-        >
-          <span>FLAPS</span>
-          <strong>{Math.round(simRef.current.craft.flaps * 100)}%</strong>
-        </button>
-      </div>
+      <FlightControlPedestal sim={simRef.current} bump={bump} />
 
       <DeckPanel
         sim={simRef.current}
