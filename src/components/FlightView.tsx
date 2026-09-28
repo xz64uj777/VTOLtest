@@ -71,10 +71,9 @@ export function FlightView({ quality, experience, bird, onHangar }: Props) {
           className="deck-btn"
           onClick={() => {
             setMenuOpen(true)
-            setPaused(true)
           }}
         >
-          Menu
+          SYS
         </button>
         <button
           type="button"
