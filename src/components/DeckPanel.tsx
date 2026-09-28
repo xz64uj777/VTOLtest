@@ -41,11 +41,15 @@ export function DeckPanel({ sim, hud, visible, onToggle, bump }: Props) {
           type="button"
           className={`deck-sw ${c.lightsOn ? 'on' : ''}`}
           onClick={() => {
-            c.lightsOn = !c.lightsOn
+            const next = !c.lightsOn
+            c.navLightsOn = next
+            c.landingLightsOn = next
+            c.strobeLightsOn = next
+            c.lightsOn = next
             bump()
           }}
         >
-          <span className="sw-lab">LIGHTS</span>
+          <span className="sw-lab">EXT LTS</span>
           <span className="sw-val">{c.lightsOn ? 'ON' : 'OFF'}</span>
         </button>
         <button
