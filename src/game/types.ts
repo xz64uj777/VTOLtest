@@ -130,13 +130,12 @@ export type Hud = {
 
 export type SystemsPanel =
   | 'none'
-  | 'flight'
-  | 'power'
-  | 'fuel'
-  | 'electrics'
-  | 'lights'
-  | 'config'
-  | 'autopilot'
+  | 'main'
+  | 'overhead'
+  | 'engine'
+  | 'pedestal'
+  | 'gearflap'
+  | 'afcs'
   | 'ground'
   | 'failures'
 
@@ -157,4 +156,8 @@ export type Sim = {
   paused: boolean
   apHeadingHold: boolean
   apAltitudeHold: boolean
+  /** AFCS selected heading in degrees magnetic-style 0..359. */
+  apHeadingTargetDeg: number
+  /** AFCS selected altitude in metres internally; panel presents feet. */
+  apAltitudeTargetM: number
 }
