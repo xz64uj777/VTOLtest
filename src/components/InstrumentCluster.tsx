@@ -156,7 +156,11 @@ export function InstrumentCluster({ sim, hud }: Props) {
       <div className="cockpit-center">
         <Pfd sim={sim} hud={hud} />
         <div className="cockpit-annunciators">
-          <SystemLamp label="GEAR" state={c.gearDown ? 'DOWN' : 'UP'} />
+          <SystemLamp
+            label="GEAR"
+            state={hud.gearTransit ? 'TRANSIT' : c.gearDown ? 'DOWN' : 'UP'}
+            danger={hud.gearTransit}
+          />
           <SystemLamp label="FLAPS" state={`${flapPct}%`} />
           <SystemLamp label="ELEC" state={c.electricsOn ? 'ON' : 'OFF'} danger={!c.electricsOn} />
           <SystemLamp label="APU" state={c.apuOn ? 'ON' : 'OFF'} />
