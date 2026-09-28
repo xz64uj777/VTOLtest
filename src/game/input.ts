@@ -197,19 +197,45 @@ export function bindKeyboard(input: InputState, target: Window | HTMLElement = w
   }
 }
 
-export async function requestGyroPermission(): Promise<'ok' | 'denied' | 'unsupported'> {
+export type GyroPermissionResult = 'ok' | 'denied' | 'unsupported' | 'insecure'
+
+async function querySensorPermission(name: 'accelerometer' | 'gyroscope'): Promise<PermissionState | 'unknown'> {
+  if (typeof navigator === 'undefined' || !navigator.permissions?.query) return 'unknown'
+  try {
+    const result = await navigator.permissions.query({ name } as PermissionDescriptor)
+    return result.state
+  } catch {
+    return 'unknown'
+  }
+}
+
+export async function requestGyroPermission(): Promise<GyroPermissionResult> {
+  if (typeof window === 'undefined') return 'unsupported'
+  if (!window.isSecureContext) return 'insecure'
+  if (typeof window.DeviceOrientationEvent === 'undefined') return 'unsupported'
+
   const DOE = DeviceOrientationEvent as unknown as {
     requestPermission?: () => Promise<'granted' | 'denied'>
   }
+
+  // Browsers such as Safari expose an explicit user-gesture permission request.
   if (typeof DOE.requestPermission === 'function') {
     try {
       const r = await DOE.requestPermission()
-      return r === 'granted' ? 'ok' : 'denied'
+      if (r !== 'granted') return 'denied'
     } catch {
       return 'denied'
     }
   }
-  if (typeof window.DeviceOrientationEvent === 'undefined') return 'unsupported'
+
+  // Chromium exposes the underlying sensor permissions through Permissions API.
+  // A site-level Motion sensors block cannot be overridden by the page itself.
+  const [accel, gyro] = await Promise.all([
+    querySensorPermission('accelerometer'),
+    querySensorPermission('gyroscope'),
+  ])
+  if (accel === 'denied' || gyro === 'denied') return 'denied'
+
   return 'ok'
 }
 
