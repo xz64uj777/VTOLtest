@@ -127,6 +127,10 @@ export function createCraft(kind: BirdKind = 'osprey'): Craft {
     vectorPos: 0,
     aoa: 0,
     gearDown: true,
+    gearCommandDown: true,
+    gearNosePos: 1,
+    gearLeftPos: 1,
+    gearRightPos: 1,
     flaps: 0,
     fuel: 1,
     engineL: 1,
@@ -138,6 +142,28 @@ export function createCraft(kind: BirdKind = 'osprey'): Craft {
     parkingBrake: true,
     lightsOn: false,
   }
+}
+
+export function gearExtension(c: Craft): number {
+  return clamp((c.gearNosePos + c.gearLeftPos + c.gearRightPos) / 3, 0, 1)
+}
+
+function moveToward(v: number, target: number, maxStep: number): number {
+  if (Math.abs(target - v) <= maxStep) return target
+  return v + Math.sign(target - v) * maxStep
+}
+
+function stepGearSystem(c: Craft, dt: number): void {
+  if (c.onGround) c.gearCommandDown = true
+  const target = c.gearCommandDown ? 1 : 0
+  const baseRate = c.failHyd ? 0.16 : 0.5
+  c.gearNosePos = moveToward(c.gearNosePos, target, baseRate * 1.05 * dt)
+  c.gearLeftPos = moveToward(c.gearLeftPos, target, baseRate * 0.98 * dt)
+  c.gearRightPos = moveToward(c.gearRightPos, target, baseRate * 0.94 * dt)
+  c.gearDown =
+    c.gearNosePos >= 0.985 &&
+    c.gearLeftPos >= 0.985 &&
+    c.gearRightPos >= 0.985
 }
 
 function plantGear(c: Craft, contactH: number, ctrl: Controls, plantThr: number, dt: number): void {
@@ -374,9 +400,10 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
   if (c.vy < 0 && ctrl.tcl > 0.3 && helFrac > 0.55 && !stickPitchLive) {
     fy -= SETTLE * MASS * (-c.vy) * ctrl.tcl * helFrac
   }
-  if (c.gearDown && aplFrac > 0.5) {
-    fx -= c.vx * 0.1 * MASS
-    fz -= c.vz * 0.1 * MASS
+  const gearExtOsp = gearExtension(c)
+  if (gearExtOsp > 0.02 && aplFrac > 0.5) {
+    fx -= c.vx * 0.1 * MASS * gearExtOsp
+    fz -= c.vz * 0.1 * MASS * gearExtOsp
   }
 
   // Cap accelerations so extreme AoA / q cannot explode into NaN next frame
@@ -397,7 +424,8 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
   if (!Number.isFinite(c.z)) c.z = 0
   if (!Number.isFinite(c.aoa)) c.aoa = c.pitch
 
-  const contactH = c.gearDown ? GEAR_H : GEAR_H * 0.55
+  const gearExtOspContact = gearExtension(c)
+  const contactH = GEAR_H * (0.55 + 0.45 * gearExtOspContact)
   const plantThr = mode === 'HEL' ? 0.55 : 0.25
   plantGear(c, contactH, ctrl, plantThr, dt)
 
@@ -451,14 +479,16 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   const speedHoriz = Math.hypot(c.vx, c.vz)
   const speedKt = speedHoriz * 1.94384
   const agl = Math.max(0, c.y - F35_GEAR_H)
-  const contactH = c.gearDown ? F35_GEAR_H : F35_GEAR_H * 0.5
+  const gearExtF35 = gearExtension(c)
+  const contactH = F35_GEAR_H * (0.5 + 0.5 * gearExtF35)
 
   // CTOL weight-on-wheels (jet-specific — NOT Osprey plantGear spring)
   const ctolVec = vlFrac < F35_STOVL_MIN * 0.85 // ~0.30 — clear of STOVL float
-  const nearDeck = c.gearDown && agl < 0.85
+  const gearAvailable = gearExtF35 > 0.9
+  const nearDeck = gearAvailable && agl < 0.85
   // Hysteresis: stay WOW until clear rotate; re-latch only when firmly planted
   let wowCtol = false
-  if (ctolVec && c.gearDown) {
+  if (ctolVec && gearAvailable) {
     if (c.onGround) {
       // Stay latched while onGround until rotate criteria met (handled below)
       wowCtol = agl < F35_CTOL_AIR_HYST + 0.4
@@ -687,8 +717,8 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   fz -= c.vz * F35_DRAG_H * F35_MASS * dragScale
   fy -= c.vy * 1.2 * F35_MASS * 0.08
 
-  if (c.gearDown && mode === 'CTOL') {
-    const gearDrag = wowCtol ? F35_WOW_GEAR_DRAG : 0.1
+  if (gearExtF35 > 0.02 && mode === 'CTOL') {
+    const gearDrag = (wowCtol ? F35_WOW_GEAR_DRAG : 0.1) * gearExtF35
     fx -= c.vx * gearDrag * F35_MASS
     fz -= c.vz * gearDrag * F35_MASS
   }
@@ -711,7 +741,7 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   if (!Number.isFinite(c.aoa)) c.aoa = c.pitch
 
   // —— F-35 CTOL ground (jet-specific): hard pin + critical damp — no plantGear spring ——
-  if (wowCtol || (ctolVec && c.gearDown && c.y <= contactH + 0.2 && c.vy < 2)) {
+  if (wowCtol || (ctolVec && gearAvailable && c.y <= contactH + 0.2 && c.vy < 2)) {
     // Critically damp vertical & pin every frame — kills runway hop / spring fight
     c.y = contactH
     c.vy *= Math.exp(-28 * dt) // critical settle
@@ -766,7 +796,7 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   } else if (!ctolVec) {
     const plantThr = mode === 'VL' ? 0.55 : mode === 'STOVL' ? 0.38 : 0.18
     plantGear(c, contactH, ctrl, plantThr, dt)
-  } else if (ctolVec && c.gearDown && c.y < contactH + F35_CTOL_AIR_HYST) {
+  } else if (ctolVec && gearAvailable && c.y < contactH + F35_CTOL_AIR_HYST) {
     // CTOL but briefly airborne under hysteresis ceiling: soft settle, still no spring
     if (c.y < contactH) {
       c.y = contactH
@@ -791,10 +821,11 @@ export function stepCraft(
   experience: Experience,
 ): string {
   const dtClamped = clamp(dt, 0, 0.05)
+  stepGearSystem(c, dtClamped)
   const warn =
     c.kind === 'f35' ? stepF35(c, ctrl, dtClamped, experience) : stepOsprey(c, ctrl, dtClamped, experience)
-  // v10: never allow gear UP while weight-on-wheels
-  if (c.onGround) c.gearDown = true
+  // Weight-on-wheels always commands gear down; extension then slews physically.
+  if (c.onGround) c.gearCommandDown = true
   return warn
 }
 
@@ -802,34 +833,32 @@ export function stepCraft(
 /** Refuse gear UP while weight-on-wheels / firmly on deck. Extend always OK. */
 export function trySetGearDown(c: Craft, wantDown: boolean): boolean {
   if (wantDown) {
-    c.gearDown = true
+    c.gearCommandDown = true
     return true
   }
   const gearH = c.kind === 'f35' ? F35_GEAR_H : GEAR_H
   const agl = Math.max(0, c.y - gearH)
   if (c.onGround || agl < 1.2) {
-    c.gearDown = true
+    c.gearCommandDown = true
     return false
   }
-  c.gearDown = false
+  c.gearCommandDown = false
   return true
 }
 
 export function hardLanding(c: Craft): boolean {
-  const contactH = c.kind === 'f35'
-    ? c.gearDown
-      ? F35_GEAR_H
-      : F35_GEAR_H * 0.5
-    : c.gearDown
-      ? GEAR_H
-      : GEAR_H * 0.55
+  const ext = gearExtension(c)
+  const contactH =
+    c.kind === 'f35'
+      ? F35_GEAR_H * (0.5 + 0.5 * ext)
+      : GEAR_H * (0.55 + 0.45 * ext)
   return c.y <= contactH + 0.08 && (c.vy < -8 || Math.hypot(c.vx, c.vz) > 22)
 }
 
 
 /** Freeze craft if any kinematic field is non-finite. Returns true if a fault was caught. */
 export function sanitizeCraft(c: Craft): boolean {
-  const fields = [c.x, c.y, c.z, c.vx, c.vy, c.vz, c.pitch, c.roll, c.yaw, c.yawRate, c.aoa, c.nacelleDeg, c.vectorPos, c.rotorRpm]
+  const fields = [c.x, c.y, c.z, c.vx, c.vy, c.vz, c.pitch, c.roll, c.yaw, c.yawRate, c.aoa, c.nacelleDeg, c.vectorPos, c.rotorRpm, c.gearNosePos, c.gearLeftPos, c.gearRightPos]
   if (fields.every((v) => Number.isFinite(v))) {
     // Soft clamp attitudes even when finite
     c.pitch = clamp(c.pitch, -1.2, 1.2)
@@ -840,6 +869,10 @@ export function sanitizeCraft(c: Craft): boolean {
     c.vectorPos = clamp(c.vectorPos, 0, 1)
     c.rotorRpm = clamp(c.rotorRpm, 0, 1.5)
     c.aoa = clamp(c.aoa, -1.5, 1.5)
+    c.gearNosePos = clamp(c.gearNosePos, 0, 1)
+    c.gearLeftPos = clamp(c.gearLeftPos, 0, 1)
+    c.gearRightPos = clamp(c.gearRightPos, 0, 1)
+    c.gearDown = c.gearNosePos >= 0.985 && c.gearLeftPos >= 0.985 && c.gearRightPos >= 0.985
     const gearH = c.kind === 'f35' ? F35_GEAR_H : GEAR_H
     if (c.y < gearH * 0.4) c.y = gearH * 0.4
     if (c.y > 8000) c.y = 8000
@@ -860,6 +893,11 @@ export function sanitizeCraft(c: Craft): boolean {
   c.rotorRpm = clamp(Number.isFinite(c.rotorRpm) ? c.rotorRpm : 0.2, 0, 1)
   c.nacelleDeg = clamp(Number.isFinite(c.nacelleDeg) ? c.nacelleDeg : 0, 0, 90)
   c.vectorPos = clamp(Number.isFinite(c.vectorPos) ? c.vectorPos : 0, 0, 1)
+  c.gearNosePos = clamp(Number.isFinite(c.gearNosePos) ? c.gearNosePos : 1, 0, 1)
+  c.gearLeftPos = clamp(Number.isFinite(c.gearLeftPos) ? c.gearLeftPos : 1, 0, 1)
+  c.gearRightPos = clamp(Number.isFinite(c.gearRightPos) ? c.gearRightPos : 1, 0, 1)
+  c.gearCommandDown = c.gearNosePos + c.gearLeftPos + c.gearRightPos > 1.5
+  c.gearDown = c.gearNosePos >= 0.985 && c.gearLeftPos >= 0.985 && c.gearRightPos >= 0.985
   c.onGround = c.y <= gearH + 0.2
   return true
 }
@@ -871,6 +909,7 @@ export function headingDeg(yaw: number): number {
 }
 
 export function contactHeight(c: Craft): number {
-  if (c.kind === 'f35') return c.gearDown ? F35_GEAR_H : F35_GEAR_H * 0.5
-  return c.gearDown ? GEAR_H : GEAR_H * 0.55
+  const ext = gearExtension(c)
+  if (c.kind === 'f35') return F35_GEAR_H * (0.5 + 0.5 * ext)
+  return GEAR_H * (0.55 + 0.45 * ext)
 }
