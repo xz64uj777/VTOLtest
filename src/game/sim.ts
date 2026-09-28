@@ -248,6 +248,13 @@ export function hudFrom(sim: Sim): Hud {
     quality: sim.quality,
     envelopeWarn: sim.envelopeWarn,
     gearDown: c.gearDown,
+    gearCommandDown: c.gearCommandDown,
+    gearTransit:
+      !(c.gearNosePos >= 0.985 && c.gearLeftPos >= 0.985 && c.gearRightPos >= 0.985) &&
+      !(c.gearNosePos <= 0.015 && c.gearLeftPos <= 0.015 && c.gearRightPos <= 0.015),
+    gearNosePos: clampHud(c.gearNosePos, 0, 1),
+    gearLeftPos: clampHud(c.gearLeftPos, 0, 1),
+    gearRightPos: clampHud(c.gearRightPos, 0, 1),
     flaps: Number.isFinite(c.flaps) ? clampHud(c.flaps, 0, 1) : 0,
   }
 }
