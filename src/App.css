@@ -2902,3 +2902,341 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v20 physical cockpit panel navigation */
+.sys-panel-v20 {
+  width: min(760px, 78vw);
+  max-height: min(88vh, 620px);
+  background: linear-gradient(180deg, rgba(45,56,63,.98), rgba(20,28,33,.99));
+}
+.cockpit-location-strip {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(54px,1fr));
+  gap: 4px;
+  margin-bottom: 7px;
+  overflow-x: auto;
+}
+.cockpit-location-strip button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 5px 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(220,230,235,.14);
+  background: linear-gradient(180deg, rgba(66,78,85,.72), rgba(27,36,41,.82));
+  color: #dce6ea;
+  text-align: center;
+}
+.cockpit-location-strip button strong,
+.cockpit-location-strip button span {
+  display: block;
+}
+.cockpit-location-strip button strong {
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+.cockpit-location-strip button span {
+  margin-top: 2px;
+  font-size: 4.5px;
+  color: rgba(215,226,231,.5);
+}
+.cockpit-location-strip button.active {
+  border-color: rgba(115,191,232,.62);
+  background: linear-gradient(180deg, rgba(52,100,127,.78), rgba(25,54,70,.9));
+  box-shadow: inset 0 -3px rgba(115,191,232,.72);
+}
+.cockpit-panel-stage {
+  overflow-y: auto;
+  max-height: calc(min(88vh,620px) - 96px);
+  padding: 2px;
+}
+.cockpit-location-panel {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+}
+.main-panel .aircraft-panel-box:first-child,
+.engine-board .aircraft-panel-box.wide,
+.afcs-board .aircraft-panel-box.wide {
+  grid-column: 1 / -1;
+}
+.overhead-board {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+.overhead-board .aircraft-panel-box {
+  min-height: 220px;
+}
+.overhead-board .aircraft-panel-content {
+  align-content: start;
+}
+.engine-board,
+.pedestal-board,
+.gearflap-board,
+.ground-board,
+.failure-board {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+.afcs-board {
+  grid-template-columns: 1fr 1fr;
+}
+
+.overhead-switch-grid,
+.engine-switch-row,
+.pedestal-switch-grid,
+.ground-service-grid,
+.failure-switch-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 5px;
+}
+.engine-switch-row {
+  grid-template-columns: repeat(auto-fit,minmax(82px,1fr));
+}
+.engine-gauge-bank,
+.quadrant-readouts,
+.afcs-selector-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(96px,1fr));
+  gap: 6px;
+}
+.afcs-mode-row {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 6px;
+}
+
+.panel-selector {
+  min-width: 0;
+  padding: 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(220,231,236,.16);
+  background: linear-gradient(180deg, rgba(12,18,21,.92), rgba(4,8,10,.96));
+}
+.panel-selector > span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(209,221,227,.56);
+  font-size: 5px;
+  letter-spacing: .09em;
+}
+.panel-selector > div {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  gap: 4px;
+  align-items: center;
+}
+.panel-selector button {
+  min-width: 0;
+  height: 30px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 35% 30%, #8b969b, #30383c 58%, #14191c 62%) !important;
+  border: 1px solid rgba(235,242,245,.25) !important;
+  color: #e9f0f3 !important;
+  font-size: 11px !important;
+}
+.panel-selector strong {
+  min-width: 0;
+  padding: 7px 4px;
+  border-radius: 3px;
+  background: #050708;
+  border: 1px solid rgba(100,150,180,.22);
+  color: #9ee2ff;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .05em;
+  box-shadow: inset 0 0 8px rgba(0,0,0,.8);
+}
+
+.panel-pfd {
+  display: grid;
+  grid-template-columns: 62px minmax(180px,1fr) 62px;
+  min-height: 160px;
+  overflow: hidden;
+  border: 2px solid #1b252a;
+  border-radius: 4px;
+  background: #030506;
+  box-shadow: inset 0 0 18px rgba(0,0,0,.95), 0 2px 4px rgba(0,0,0,.35);
+}
+.panel-pfd-tape {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  background: linear-gradient(180deg,#2c3337,#101416);
+  border-left: 1px solid rgba(255,255,255,.12);
+  border-right: 1px solid rgba(255,255,255,.12);
+}
+.panel-pfd-tape span {
+  font-size: 6px;
+  color: #99a7ad;
+  letter-spacing: .08em;
+}
+.panel-pfd-tape strong {
+  margin: 6px 0 2px;
+  padding: 4px 3px;
+  width: calc(100% - 8px);
+  border: 1px solid rgba(255,255,255,.8);
+  color: white;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.panel-pfd-tape small {
+  font-size: 5px;
+  color: #8d9aa0;
+}
+.panel-pfd-center {
+  display: grid;
+  grid-template-rows: 1fr 24px 18px;
+}
+.panel-pfd-attitude {
+  position: relative;
+  overflow: hidden;
+  background: #3d7898;
+}
+.panel-pfd-world {
+  position: absolute;
+  inset: -65% -35%;
+  transform: translateY(var(--panel-pitch)) rotate(var(--panel-roll));
+}
+.panel-pfd-sky {
+  position: absolute;
+  inset: 0 0 50%;
+  background: linear-gradient(#3e7c9d,#69b2d3);
+}
+.panel-pfd-ground {
+  position: absolute;
+  inset: 50% 0 0;
+  background: linear-gradient(#9b603d,#60371f);
+}
+.panel-pfd-horizon {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 2px;
+  background: white;
+}
+.panel-pfd-wing {
+  position: absolute;
+  top: 53%;
+  width: 38px;
+  height: 3px;
+  background: white;
+  z-index: 4;
+}
+.panel-pfd-wing.left { right: calc(50% + 8px); }
+.panel-pfd-wing.right { left: calc(50% + 8px); }
+.panel-pfd-dot {
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  width: 8px;
+  height: 8px;
+  margin: -3px 0 0 -4px;
+  border: 2px solid #f3d94d;
+  border-radius: 50%;
+  z-index: 5;
+}
+.panel-pfd-hdg,
+.panel-pfd-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #050708;
+  border-top: 1px solid rgba(255,255,255,.12);
+  color: #aebcc2;
+  font-size: 6px;
+}
+.panel-pfd-hdg strong { color: #fff; font-size: 10px; }
+.panel-pfd-vs strong { color: #74e8a5; font-size: 8px; }
+
+.gear-panel-large {
+  display: grid;
+  gap: 6px;
+}
+.flap-detent-panel {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 4px;
+}
+.flap-detent-panel button {
+  min-width: 0;
+  min-height: 48px;
+  margin: 0 !important;
+  padding: 5px 3px !important;
+  border-radius: 3px !important;
+  background: linear-gradient(180deg,rgba(69,79,84,.85),rgba(24,31,35,.95)) !important;
+}
+.flap-detent-panel button span,
+.flap-detent-panel button strong {
+  display: block;
+}
+.flap-detent-panel button span {
+  font-size: 6px;
+  color: #b7c4ca;
+}
+.flap-detent-panel button strong {
+  margin-top: 5px;
+  font-size: 8px;
+}
+.flap-detent-panel button.active {
+  border-color: rgba(108,205,154,.6) !important;
+  box-shadow: inset 0 -3px rgba(108,205,154,.65);
+}
+.flap-detent-panel button.active strong {
+  color: #7ee3aa;
+}
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  .sys-panel-v20 {
+    width: min(700px, 78vw);
+    max-height: 90vh;
+  }
+  .cockpit-location-strip {
+    grid-template-columns: repeat(8,minmax(50px,1fr));
+  }
+  .panel-pfd {
+    min-height: 140px;
+    grid-template-columns: 54px minmax(150px,1fr) 54px;
+  }
+}
+@media (max-width: 720px) {
+  .sys-panel-v20 {
+    width: min(620px, 82vw);
+  }
+  .overhead-board {
+    grid-template-columns: 1fr;
+  }
+  .overhead-board .aircraft-panel-box {
+    min-height: auto;
+  }
+  .cockpit-location-panel,
+  .engine-board,
+  .pedestal-board,
+  .gearflap-board,
+  .afcs-board,
+  .ground-board,
+  .failure-board {
+    grid-template-columns: 1fr;
+  }
+  .main-panel .aircraft-panel-box:first-child,
+  .engine-board .aircraft-panel-box.wide,
+  .afcs-board .aircraft-panel-box.wide {
+    grid-column: auto;
+  }
+}
+@media (orientation: portrait) {
+  .sys-panel-v20 {
+    width: calc(100vw - 12px);
+    max-height: 72vh;
+  }
+  .cockpit-location-strip {
+    grid-template-columns: repeat(4,minmax(62px,1fr));
+  }
+  .panel-pfd {
+    grid-template-columns: 50px minmax(140px,1fr) 50px;
+    min-height: 135px;
+  }
+}
