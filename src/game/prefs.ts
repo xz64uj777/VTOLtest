@@ -19,8 +19,11 @@ export const GYRO_LIVE_MS = 1000
 export const GYRO_HOLDOVER_MS = 5000
 
 /** Sticky copy when Tilt is on but motion never sustains. */
+export const TILT_PERMISSION_HINT =
+  'Motion sensors are blocked for this site. In Chrome: tap the icon beside the address bar → Permissions → Motion sensors → Allow, reload, then enable Tilt.'
+
 export const TILT_NO_SIGNAL_HINT =
-  "Phone isn't sending motion — Chrome + HTTPS + screen unlocked. Laptops have no gyro; use a phone."
+  'No motion data is arriving. Check Chrome → Site settings → Motion sensors is allowed for this site, keep the screen unlocked, then reload and try Tilt again.'
 
 export type FlightPrefs = {
   sens: SensKey
