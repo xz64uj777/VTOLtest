@@ -202,7 +202,7 @@ export type GyroPermissionResult = 'ok' | 'denied' | 'unsupported' | 'insecure'
 async function querySensorPermission(name: 'accelerometer' | 'gyroscope'): Promise<PermissionState | 'unknown'> {
   if (typeof navigator === 'undefined' || !navigator.permissions?.query) return 'unknown'
   try {
-    const result = await navigator.permissions.query({ name } as PermissionDescriptor)
+    const result = await navigator.permissions.query({ name } as unknown as PermissionDescriptor)
     return result.state
   } catch {
     return 'unknown'
