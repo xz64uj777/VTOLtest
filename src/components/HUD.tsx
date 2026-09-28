@@ -132,8 +132,8 @@ export function HUD({ hud, message, paused, level }: Props) {
       <div className="hud-status-rail">
         <span className="hud-airframe">{hud.bird === 'f35' ? 'F-35' : 'V-22'}</span>
         <span className="hud-power">PWR <strong>{powerPct}%</strong></span>
-        <span className={statusClass(hud.gearDown, hud.gearDown && hud.speed > 125)}>
-          GEAR {hud.gearDown ? 'DN' : 'UP'}
+        <span className={statusClass(hud.gearDown, hud.gearTransit || (hud.gearDown && hud.speed > 125))}>
+          GEAR {hud.gearTransit ? 'TR' : hud.gearDown ? 'DN' : 'UP'}
         </span>
         <span className={statusClass(flapPct > 0)}>FLAP {flapPct}%</span>
         <span className={statusClass(hud.onGround)}>WOW {hud.onGround ? 'ON' : 'OFF'}</span>
