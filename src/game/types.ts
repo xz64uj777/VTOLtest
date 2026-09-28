@@ -51,7 +51,14 @@ export type Craft = {
   vectorPos: number
   /** Approx AoA radians (for F-35 HUD). */
   aoa: number
+  /** True only when all three landing-gear legs are down and locked. */
   gearDown: boolean
+  /** Pilot gear-lever command. */
+  gearCommandDown: boolean
+  /** Individual gear-leg extension, 0=retracted .. 1=down/locked. */
+  gearNosePos: number
+  gearLeftPos: number
+  gearRightPos: number
   flaps: number
   fuel: number
   engineL: number
@@ -100,6 +107,11 @@ export type Hud = {
   quality: QualityKey
   envelopeWarn: string
   gearDown: boolean
+  gearCommandDown: boolean
+  gearTransit: boolean
+  gearNosePos: number
+  gearLeftPos: number
+  gearRightPos: number
   flaps: number
 }
 
