@@ -896,13 +896,20 @@ export class Renderer {
     fillPoly(ctx, [P(-7.6, 0.85, -0.9), P(7.6, 0.85, -0.9), P(6.2, 0.72, 1.6), P(-6.2, 0.72, 1.6)], 'rgba(108,114,104,0.9)')
     fillPoly(ctx, [P(0, 0.45, -3.2), P(-1.7, 1.7, -5.1), P(1.7, 1.7, -5.1)], 'rgba(96,102,94,0.9)')
 
-    // Landing gear
-    if (craft.gearDown) {
-      parts.push({ a: xf(-1.4, -2.0, 1.5), b: xf(-1.4, -0.3, 1.2), color: '#444', width: 2 })
-      parts.push({ a: xf(1.4, -2.0, 1.5), b: xf(1.4, -0.3, 1.2), color: '#444', width: 2 })
-      parts.push({ a: xf(0, -2.0, -2.2), b: xf(0, -0.2, -1.8), color: '#444', width: 2 })
-      parts.push({ a: xf(-1.6, -2.05, 1.5), b: xf(-1.2, -2.05, 1.5), color: '#222', width: 3 })
-      parts.push({ a: xf(1.2, -2.05, 1.5), b: xf(1.6, -2.05, 1.5), color: '#222', width: 3 })
+    // Landing gear — animate each leg from its own extension state.
+    const ospLeftY = -0.3 - 1.7 * craft.gearLeftPos
+    const ospRightY = -0.3 - 1.7 * craft.gearRightPos
+    const ospNoseY = -0.2 - 1.8 * craft.gearNosePos
+    if (craft.gearLeftPos > 0.02) {
+      parts.push({ a: xf(-1.4, ospLeftY, 1.5), b: xf(-1.4, -0.3, 1.2), color: '#444', width: 2 })
+      parts.push({ a: xf(-1.6, ospLeftY - 0.05, 1.5), b: xf(-1.2, ospLeftY - 0.05, 1.5), color: '#222', width: 3 })
+    }
+    if (craft.gearRightPos > 0.02) {
+      parts.push({ a: xf(1.4, ospRightY, 1.5), b: xf(1.4, -0.3, 1.2), color: '#444', width: 2 })
+      parts.push({ a: xf(1.2, ospRightY - 0.05, 1.5), b: xf(1.6, ospRightY - 0.05, 1.5), color: '#222', width: 3 })
+    }
+    if (craft.gearNosePos > 0.02) {
+      parts.push({ a: xf(0, ospNoseY, -2.2), b: xf(0, -0.2, -1.8), color: '#444', width: 2 })
     }
 
     // Fuselage
@@ -1058,10 +1065,17 @@ export class Renderer {
     fillPoly(ctx, [P(-1.5, 0.4, -2.6), P(-1.5, 2.05, -3.7), P(-0.7, 0.35, -2.4)], 'rgba(120,128,134,0.9)')
     fillPoly(ctx, [P(1.5, 0.4, -2.6), P(1.5, 2.05, -3.7), P(0.7, 0.35, -2.4)], 'rgba(120,128,134,0.9)')
 
-    if (craft.gearDown) {
-      parts.push({ a: xf(-1.2, -1.7, 1.2), b: xf(-1.2, -0.2, 1.0), color: '#555', width: 2 })
-      parts.push({ a: xf(1.2, -1.7, 1.2), b: xf(1.2, -0.2, 1.0), color: '#555', width: 2 })
-      parts.push({ a: xf(0, -1.7, -2.0), b: xf(0, -0.1, -1.6), color: '#555', width: 2 })
+    const f35LeftY = -0.2 - 1.5 * craft.gearLeftPos
+    const f35RightY = -0.2 - 1.5 * craft.gearRightPos
+    const f35NoseY = -0.1 - 1.6 * craft.gearNosePos
+    if (craft.gearLeftPos > 0.02) {
+      parts.push({ a: xf(-1.2, f35LeftY, 1.2), b: xf(-1.2, -0.2, 1.0), color: '#555', width: 2 })
+    }
+    if (craft.gearRightPos > 0.02) {
+      parts.push({ a: xf(1.2, f35RightY, 1.2), b: xf(1.2, -0.2, 1.0), color: '#555', width: 2 })
+    }
+    if (craft.gearNosePos > 0.02) {
+      parts.push({ a: xf(0, f35NoseY, -2.0), b: xf(0, -0.1, -1.6), color: '#555', width: 2 })
     }
 
     // Fuselage — gray fighter
