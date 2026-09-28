@@ -63,14 +63,27 @@ export type Craft = {
   fuel: number
   engineL: number
   engineR: number
+  engineMasterL: boolean
+  engineMasterR: boolean
+  fuelPumpLOn: boolean
+  fuelPumpROn: boolean
+  crossfeedOn: boolean
   apuOn: boolean
+  batteryOn: boolean
+  generatorLOn: boolean
+  generatorROn: boolean
   electricsOn: boolean
   failAsymmetric: boolean
   failHyd: boolean
   /** Stub: parking brake (ground only cue). */
   parkingBrake: boolean
-  /** Stub: nav/landing lights. */
+  /** Exterior lighting. */
   lightsOn: boolean
+  navLightsOn: boolean
+  landingLightsOn: boolean
+  strobeLightsOn: boolean
+  pitotHeatOn: boolean
+  antiIceOn: boolean
 }
 
 export type Cam = {
@@ -118,11 +131,13 @@ export type Hud = {
 export type SystemsPanel =
   | 'none'
   | 'flight'
-  | 'engines'
+  | 'power'
   | 'fuel'
-  | 'gear'
   | 'electrics'
+  | 'lights'
+  | 'config'
   | 'autopilot'
+  | 'ground'
   | 'failures'
 
 export type Sim = {
