@@ -263,14 +263,6 @@ export function FlightView({ quality, experience, bird, onHangar }: Props) {
         }}
         onPanel={onPanel}
         bump={bump}
-        prefs={prefs}
-        tiltHb={tiltHb}
-        onTilt={toggleTilt}
-        onRecalibrate={recalibrate}
-        onSens={cycleSens}
-        onPitchMode={togglePitchMode}
-        onInvertPitch={toggleInvertPitch}
-        onInvertRoll={toggleInvertRoll}
       />
       <span className="sr-only">{tick}</span>
     </div>
