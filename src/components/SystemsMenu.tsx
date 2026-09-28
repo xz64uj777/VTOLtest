@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { FlightPrefs, TiltHeartbeat } from '../game/prefs'
 import { trySetGearDown } from '../game/physics'
 import type { Sim, SystemsPanel } from '../game/types'
@@ -73,7 +74,7 @@ function PanelBox({
 }: {
   title: string
   subtitle?: string
-  children: React.ReactNode
+  children: ReactNode
   wide?: boolean
 }) {
   return (
