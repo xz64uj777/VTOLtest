@@ -229,7 +229,11 @@ function stepOsprey(c: Craft, ctrl: Controls, dt: number, experience: Experience
   const helFrac = Math.sin(nacRad)
   const aplFrac = Math.cos(nacRad)
 
-  const engAvg = ((c.engineL + c.engineR) / 2) * (c.electricsOn ? 1 : 0.15)
+  const fuelL = c.fuelPumpLOn || (c.crossfeedOn && c.fuelPumpROn)
+  const fuelR = c.fuelPumpROn || (c.crossfeedOn && c.fuelPumpLOn)
+  const engLAvail = c.engineMasterL && fuelL && c.fuel > 0 ? c.engineL : 0
+  const engRAvail = c.engineMasterR && fuelR && c.fuel > 0 ? c.engineR : 0
+  const engAvg = (engLAvail + engRAvail) / 2
   const asym = c.failAsymmetric ? 0.55 : 1
   const powerAvail = clamp(engAvg * asym * (0.4 + 0.6 * c.fuel), 0, 1)
 
@@ -478,7 +482,11 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   const vlFrac = clamp(c.vectorPos, 0, 1)
   const stovlBlend = mode === 'STOVL' ? 1 : mode === 'VL' ? 1 : 0
 
-  const eng = c.engineL * (c.electricsOn ? 1 : 0.2) * (0.45 + 0.55 * c.fuel)
+  const fuelFeed = c.fuelPumpLOn || c.fuelPumpROn
+  const eng =
+    c.engineMasterL && fuelFeed && c.fuel > 0
+      ? c.engineL * (0.45 + 0.55 * c.fuel)
+      : 0
   const powerAvail = clamp(eng * (c.failAsymmetric ? 0.7 : 1), 0, 1)
 
   // v10: CTOL spool higher so takeoff-roll thrust clears rotate speed
@@ -827,6 +835,23 @@ function stepF35(c: Craft, ctrl: Controls, dt: number, experience: Experience): 
   return envelopeWarn
 }
 
+function updateAircraftSystems(c: Craft): void {
+  const leftGenerating = c.generatorLOn && c.engineMasterL && c.engineL > 0.2
+  const rightGenerating =
+    c.kind === 'osprey' && c.generatorROn && c.engineMasterR && c.engineR > 0.2
+  c.electricsOn = c.batteryOn || c.apuOn || leftGenerating || rightGenerating
+  c.lightsOn = c.navLightsOn || c.landingLightsOn || c.strobeLightsOn
+
+  // Systems that require the electrical bus drop out when the bus is dead.
+  if (!c.electricsOn) {
+    c.navLightsOn = false
+    c.landingLightsOn = false
+    c.strobeLightsOn = false
+    c.pitotHeatOn = false
+    c.antiIceOn = false
+  }
+}
+
 export function stepCraft(
   c: Craft,
   ctrl: Controls,
@@ -834,6 +859,7 @@ export function stepCraft(
   experience: Experience,
 ): string {
   const dtClamped = clamp(dt, 0, 0.05)
+  updateAircraftSystems(c)
   stepGearSystem(c, dtClamped)
   const warn =
     c.kind === 'f35' ? stepF35(c, ctrl, dtClamped, experience) : stepOsprey(c, ctrl, dtClamped, experience)
