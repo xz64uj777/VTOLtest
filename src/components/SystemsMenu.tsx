@@ -184,11 +184,15 @@ export function SystemsMenu({
           )}
           {p === 'gear' && (
             <div>
-              <p>Gear {c.gearDown ? 'DOWN' : 'UP'} · Flaps {(c.flaps * 100).toFixed(0)}%</p>
+              <p>
+                Gear {c.gearDown ? 'DOWN / LOCKED' : c.gearCommandDown ? 'EXTENDING' : 'UP / RETRACTING'} ·
+                N {(c.gearNosePos * 100).toFixed(0)}% · L {(c.gearLeftPos * 100).toFixed(0)}% ·
+                R {(c.gearRightPos * 100).toFixed(0)}% · Flaps {(c.flaps * 100).toFixed(0)}%
+              </p>
               <button
                 type="button"
                 onClick={() => {
-                  const ok = trySetGearDown(c, !c.gearDown)
+                  const ok = trySetGearDown(c, !c.gearCommandDown)
                   if (!ok) sim.message = 'Gear locked — get airborne to retract'
                   bump()
                 }}
