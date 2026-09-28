@@ -35,6 +35,8 @@ export function createSim(
     paused: false,
     apHeadingHold: false,
     apAltitudeHold: false,
+    apHeadingTargetDeg: 0,
+    apAltitudeTargetM: bird === 'f35' ? 35 : 40,
   }
 }
 
@@ -56,6 +58,8 @@ export function startFlight(sim: Sim): void {
   sim.systemsPanel = 'none'
   sim.apHeadingHold = false
   sim.apAltitudeHold = false
+  sim.apHeadingTargetDeg = headingDeg(sim.craft.yaw)
+  sim.apAltitudeTargetM = sim.craft.y
 }
 
 export function resetToHangar(sim: Sim): void {
@@ -126,13 +130,18 @@ export function stepSim(sim: Sim, controls: Controls, dt: number): void {
 
   let ctrl = { ...controls }
   if (sim.apHeadingHold) {
-    ctrl.yaw *= 0.2
-    ctrl.cyclicRoll *= 0.35
+    const current = headingDeg(sim.craft.yaw)
+    let errDeg = ((sim.apHeadingTargetDeg - current + 540) % 360) - 180
+    if (!Number.isFinite(errDeg)) errDeg = 0
+    // Positive roll in this sim banks left, so a positive/right heading error commands negative roll.
+    const bankCmd = Math.max(-0.5, Math.min(0.5, -errDeg / 38))
+    ctrl.cyclicRoll = ctrl.cyclicRoll * 0.15 + bankCmd
+    ctrl.yaw *= 0.12
   }
   if (sim.apAltitudeHold) {
-    const target = sim.bird === 'f35' ? 35 : 40
-    const err = target - sim.craft.y
-    ctrl.tcl = Math.max(0.35, Math.min(0.9, ctrl.tcl + err * 0.004))
+    const err = sim.apAltitudeTargetM - sim.craft.y
+    const vsDamp = -sim.craft.vy * 0.018
+    ctrl.tcl = Math.max(0.28, Math.min(0.95, ctrl.tcl + err * 0.0045 + vsDamp))
   }
 
   sim.controls = ctrl
