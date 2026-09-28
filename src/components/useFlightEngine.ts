@@ -17,6 +17,7 @@ import {
   GYRO_HOLDOVER_MS,
   GYRO_LIVE_MS,
   TILT_NO_SIGNAL_HINT,
+  TILT_PERMISSION_HINT,
   type FlightPrefs,
   type PitchMode,
   type SensKey,
@@ -406,12 +407,20 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
     }
     const perm = await requestGyroPermission()
     if (perm === 'denied') {
-      setCalStatus('Tilt permission denied')
+      setCalStatus('Motion sensors blocked')
+      setTiltSticky(TILT_PERMISSION_HINT)
+      setTiltHb('off')
+      return
+    }
+    if (perm === 'insecure') {
+      setCalStatus('Tilt needs HTTPS')
+      setTiltSticky('Tilt sensors require a secure HTTPS page. Open the GitHub Pages link directly, then try again.')
       setTiltHb('off')
       return
     }
     if (perm === 'unsupported') {
       setCalStatus('Tilt unsupported')
+      setTiltSticky('This browser is not exposing device orientation sensors. Try current Chrome on the phone, or use touch controls.')
       setTiltHb('off')
       return
     }
