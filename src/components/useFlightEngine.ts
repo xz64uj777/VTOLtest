@@ -102,8 +102,8 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
     showSettingsRef.current = showSettings
   }, [showSettings])
   useEffect(() => {
-    audioRef.current.mute(paused || menuOpen || showSettings)
-  }, [paused, menuOpen, showSettings])
+    audioRef.current.mute(paused || showSettings)
+  }, [paused, showSettings])
   useEffect(() => {
     prefsRef.current = prefs
   }, [prefs])
@@ -208,11 +208,7 @@ export function useFlightEngine({ quality, experience, bird, onHangar }: Props) 
         setPaused((p) => !p)
       }
       if (e.code === 'KeyH') {
-        setMenuOpen((m) => {
-          const next = !m
-          if (next) setPaused(true)
-          return next
-        })
+        setMenuOpen((m) => !m)
       }
       if (e.code === 'Comma' && e.shiftKey) {
         setShowSettings((s) => {
